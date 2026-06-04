@@ -12,11 +12,13 @@ Buffer(2026)는 베타 GraphQL API + 개인 API 키 + '이미지 URL만' 허용.
   python3 buffer_post.py introspect
 
   # 3) 게시 (캐러셀 이미지 URL 여러 개 + 캡션)
+  #    기본: 승인 알림 모드 — 예약 시각에 휴대폰 Buffer 앱으로 푸시가 오고, 앱에서 '게시'를 눌러야 인스타에 올라감.
   python3 buffer_post.py publish \
      --channel <CHANNEL_ID> \
      --caption-file caption.txt \
      --images "https://.../slide_01.png,https://.../slide_02.png" \
      --due "2026-06-04T19:30:00+09:00"   # 생략 시 Buffer 큐에 추가
+  #  → 승인 없이 자동 게시하려면 --auto 추가
 
 환경변수(.env / .env.local 자동 로드): BUFFER_API_KEY, BUFFER_CHANNEL_ID, BUFFER_GRAPHQL_URL
 """
@@ -136,7 +138,10 @@ def cmd_publish(a):
         ig_type = a.type or "post"
     # schedulingType: automatic=Buffer가 직접 자동게시 / notification=모바일앱 알림 후 수동게시
     # mode: customScheduled(dueAt 예약) / addToQueue(채널 큐에 추가) / shareNow(즉시)
-    sched = "notification" if a.notify else "automatic"
+    # 기본값 notification: 예약 시각에 휴대폰 Buffer 앱으로 '승인' 푸시 알림이 오고,
+    #   사용자가 직접 '게시'를 눌러야 인스타에 올라간다(승인 후 게시).
+    #   --auto 를 명시할 때만 승인 없이 Buffer가 자동 게시한다.
+    sched = "automatic" if a.auto else "notification"
     if a.now:
         mode = "shareNow"
     elif a.due:
@@ -174,8 +179,13 @@ def cmd_publish(a):
     if tn == "PostActionSuccess":
         post = res.get("post") or {}
         when = post.get("dueAt") or ("즉시" if mode == "shareNow" else "큐 추가됨")
-        kind = "Buffer 자동게시" if sched == "automatic" else "앱 알림(수동 게시 필요)"
+        if sched == "automatic":
+            kind = "Buffer 자동게시(승인 불필요)"
+        else:
+            kind = "휴대폰 Buffer 앱 승인 알림 → 탭해서 게시"
         print(f"\n[OK] 게시 등록 완료 — id={post.get('id')} / 예정={when} / 방식={kind}")
+        if sched != "automatic":
+            print("    ※ 예약 시각에 휴대폰 Buffer 앱으로 승인 알림이 갑니다. 앱에서 '게시'를 눌러야 인스타에 올라갑니다.")
     else:
         print(f"\n[실패] {tn}: {res.get('message','(메시지 없음)')}", file=sys.stderr)
         sys.exit(1)
@@ -193,9 +203,11 @@ def main():
     p.add_argument("--thumb", help="영상 커버 썸네일 URL(선택)")
     p.add_argument("--type", help="인스타 타입: post / reel (기본: 영상이면 reel, 아니면 post)")
     p.add_argument("--due", help="ISO8601 예약 시각(+09:00). 생략 시 큐 추가")
-    p.add_argument("--now", action="store_true", help="즉시 게시(shareNow)")
-    p.add_argument("--notify", action="store_true",
-                   help="자동게시 대신 모바일 앱 알림으로 수동 게시(notification 모드)")
+    p.add_argument("--now", action="store_true", help="즉시 게시(shareNow). 단, 기본 승인 알림 모드 유지")
+    p.add_argument("--auto", action="store_true",
+                   help="승인 없이 Buffer가 자동 게시(automatic 모드). 미지정 시 기본은 휴대폰 앱 승인 알림")
+    # 하위호환: 예전 스크립트의 --notify 는 이제 기본 동작이므로 받기만 하고 무시
+    p.add_argument("--notify", action="store_true", help="(기본값) 휴대폰 앱 승인 알림 모드 — 하위호환용")
     args = ap.parse_args()
     args.fn(args)
 

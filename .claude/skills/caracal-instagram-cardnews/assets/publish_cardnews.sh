@@ -12,7 +12,7 @@ set -euo pipefail
 ROOT="/Users/zsho/클로드 워크샵"
 cd "$ROOT"
 
-DIR=""; CAPTION=""; DUE=""; CHANNEL=""; BUST=""
+DIR=""; CAPTION=""; DUE=""; CHANNEL=""; BUST=""; AUTO=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dir) DIR="$2"; shift 2;;
@@ -20,6 +20,7 @@ while [[ $# -gt 0 ]]; do
     --due) DUE="$2"; shift 2;;
     --channel) CHANNEL="$2"; shift 2;;
     --bust) BUST="$2"; shift 2;;   # 이미지 갱신 시 캐시 무력화 토큰(?v=...)
+    --auto) AUTO="1"; shift;;       # 승인 없이 Buffer 자동 게시(기본은 휴대폰 앱 승인 알림)
     *) echo "알 수 없는 인자: $1"; exit 2;;
   esac
 done
@@ -68,9 +69,18 @@ for i in $(seq 1 30); do
   [[ $i -eq 30 ]] && echo "  [경고] 아직 200 아님(첫=$c1, 끝=$c2) — 그래도 게시 시도"
 done
 
-echo "▶ 3/3 Buffer 인스타 예약 게시"
+if [[ -n "$AUTO" ]]; then
+  echo "▶ 3/3 Buffer 인스타 예약 게시 (자동 게시 — 승인 불필요)"
+else
+  echo "▶ 3/3 Buffer 인스타 예약 게시 (승인 알림 모드 — 휴대폰 Buffer 앱에서 '게시' 눌러야 업로드)"
+fi
 ARGS=(publish --caption-file "$CAPTION" --images "$URLS")
 [[ -n "$DUE" ]] && ARGS+=(--due "$DUE")
 [[ -n "$CHANNEL" ]] && ARGS+=(--channel "$CHANNEL")
+[[ -n "$AUTO" ]] && ARGS+=(--auto)
 python3 ".claude/skills/caracal-instagram-cardnews/assets/buffer_post.py" "${ARGS[@]}"
-echo "완료."
+if [[ -z "$AUTO" ]]; then
+  echo "완료 — 예약 등록됨. 예약 시각에 휴대폰 Buffer 앱 알림에서 '게시'를 눌러 승인하세요."
+else
+  echo "완료."
+fi
