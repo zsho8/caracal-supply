@@ -168,6 +168,28 @@ def run(cmd, desc=""):
         print(f"[ffmpeg 실패] {desc}\n" + r.stderr[-1800:], file=sys.stderr); sys.exit(1)
     return r
 
+def kenburns_clip(img, dur, fps, motion, out):
+    """Higgsfield 클립이 없을 때, 슬라이드 PNG에 줌·팬 모션을 입혀 클립 생성(폴백 프리뷰).
+    실제 발행용은 Higgsfield 영상으로 대체 권장."""
+    frames = max(1, int(round(dur * fps)))
+    # 모션별로 줌 방향/패닝을 달리해 빠른 컷에 리듬을 준다.
+    if motion in ("whip-pan",):
+        z = "1.12"; x = "(iw-iw/zoom)*on/{f}".format(f=frames); y = "ih/2-(ih/zoom/2)"
+    elif motion in ("crane-up",):
+        z = "min(zoom+0.0012,1.18)"; x = "iw/2-(iw/zoom/2)"; y = "(ih-ih/zoom)*(1-on/{f})".format(f=frames)
+    elif motion in ("orbit", "dolly-zoom"):
+        z = "if(lte(on,1),1.18,max(zoom-0.0010,1.0))"; x = "iw/2-(iw/zoom/2)"; y = "ih/2-(ih/zoom/2)"
+    else:  # punch-in / punch-in-hard / speed-ramp 기본: 줌 인
+        step = 0.0016 if motion == "punch-in-hard" else 0.0011
+        z = f"min(zoom+{step},1.2)"; x = "iw/2-(iw/zoom/2)"; y = "ih/2-(ih/zoom/2)"
+    # 출력(1080x1920)보다 약간 큰 1.25x로만 프리스케일 → 줌·팬 여유 확보하면서 가볍고 빠르게.
+    PS_W, PS_H = 1350, 2400
+    vf = (f"scale={PS_W}:{PS_H}:force_original_aspect_ratio=increase,crop={PS_W}:{PS_H},"
+          f"zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={W}x{H}:fps={fps},format=yuv420p")
+    run([FF, "-y", "-loop", "1", "-t", f"{dur:.3f}", "-i", img, "-an",
+         "-vf", vf, "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", out], f"kenburns {os.path.basename(img)}")
+    return out
+
 def cmd_assemble(a):
     brief = json.load(open(a.brief, encoding="utf-8"))
     shots = brief["shots"]
@@ -177,12 +199,17 @@ def cmd_assemble(a):
     # 1) 각 샷 클립을 1080x1920·동일 코덱·정확한 길이로 정규화
     norm = []
     for sh in shots:
-        clip = os.path.join(a.clips, f"shot_{sh['id']}.mp4")
-        if not os.path.exists(clip):
+        clip = os.path.join(a.clips, f"shot_{sh['id']}.mp4") if a.clips else None
+        if clip and not os.path.exists(clip):
             cand = glob.glob(os.path.join(a.clips, f"*{sh['id']}*.mp4"))
             clip = cand[0] if cand else None
+        # Higgsfield 클립이 없으면 --slides 폴백(슬라이드 줌·팬)
+        if not clip and a.slides:
+            src = os.path.join(a.slides, sh.get("source_image", f"slide_{sh['id']}.png"))
+            if os.path.exists(src):
+                clip = kenburns_clip(src, sh["dur"], fps, sh["higgsfield"]["motion"], f"{tmp}/kb_{sh['id']}.mp4")
         if not clip:
-            print(f"[!] 클립 없음: shot_{sh['id']}.mp4 — Higgsfield로 먼저 생성하세요.", file=sys.stderr); sys.exit(3)
+            print(f"[!] 클립 없음: shot_{sh['id']}.mp4 — Higgsfield로 생성하거나 --slides <폴더>로 폴백하세요.", file=sys.stderr); sys.exit(3)
         outc = f"{tmp}/n_{sh['id']}.mp4"
         vf = (f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
               f"setsar=1,fps={fps},format=yuv420p")
@@ -256,7 +283,9 @@ def main():
     b.add_argument("--maxshots", type=int, default=6)
     b.add_argument("--model", default=DEFAULT_MODEL, help="Higgsfield 모델(kling-3.0/veo-3/sora-2 등)")
     s = sub.add_parser("assemble"); s.set_defaults(fn=cmd_assemble)
-    s.add_argument("--brief", required=True); s.add_argument("--clips", required=True)
+    s.add_argument("--brief", required=True)
+    s.add_argument("--clips", default="", help="Higgsfield 클립 폴더(shot_<id>.mp4)")
+    s.add_argument("--slides", default="", help="클립 없을 때 폴백: 슬라이드 PNG 폴더(줌·팬 모션 생성)")
     s.add_argument("--out", required=True); s.add_argument("--music", default="")
     a = ap.parse_args()
     a.fn(a)

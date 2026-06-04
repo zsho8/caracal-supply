@@ -64,6 +64,11 @@ python3 ".claude/skills/caracal-instagram-cardnews/assets/reels_trend.py" assemb
 ```
 - 클립을 1080×1920로 정규화 → **빠른 하드컷 연결** → **자막 번인**(훅은 상단 크게, 본문/CTA는 하단) → 음악 믹스 → 인스타 호환 H.264/AAC(+faststart).
 - `--music` 미지정 시 저작권 안전 BGM 베드로 폴백. 실제 발행 땐 인스타 음원 라이브러리의 트렌딩 오디오로 교체 권장.
+- **Higgsfield 클립이 아직 없을 때**: `--clips` 대신 `--slides <카드뉴스 슬라이드 폴더>`를 주면 슬라이드에 줌·팬(Ken Burns) 모션을 입혀 클립을 자동 생성해 **MCP 없이도 완성본 릴스**가 나온다(프리뷰용). 이후 Higgsfield 클립이 준비되면 `--clips`로 그대로 대체.
+  ```bash
+  python3 ".../reels_trend.py" assemble --brief <brief.json> \
+    --slides "marketing-agent/output/cardnews-<번호>" --out "marketing-agent/output/reels-<번호>.mp4"
+  ```
 
 ### (4) 검수 → 발행
 - 릴스를 사용자에게 보여주고(미리보기) 승인받는다.

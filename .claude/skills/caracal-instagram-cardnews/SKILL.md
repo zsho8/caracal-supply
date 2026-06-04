@@ -157,7 +157,7 @@ bash ".claude/skills/caracal-instagram-cardnews/assets/publish_cardnews.sh" \
 워크플로(자세히: `HIGGSFIELD_MCP_SETUP.md`):
 1. **브리프**: `reels_trend.py brief --spec <spec> --out <brief.json>` → 훅/본문/CTA 샷리스트 + 샷별 Higgsfield 프롬프트(카메라 모션·모델)·자막 자동 생성.
 2. **클립 생성**: 브리프의 각 샷을 **Higgsfield MCP 도구**(`mcp__higgsfield__*`)로 이미지→영상 생성 → `shot_<id>.mp4`로 폴더에 저장. (MCP 미연결 시 `.mcp.json.example` 참고해 등록.)
-3. **조립**: `reels_trend.py assemble --brief <brief.json> --clips <폴더> --out <mp4> [--music <트랙>]` → 1080×1920, 빠른 하드컷, 자막 번인, 음악 믹스, 인스타 호환 mp4.
+3. **조립**: `reels_trend.py assemble --brief <brief.json> --clips <폴더> --out <mp4> [--music <트랙>]` → 1080×1920, 빠른 하드컷, 자막 번인, 음악 믹스, 인스타 호환 mp4. (Higgsfield 클립이 없으면 `--slides <카드뉴스 폴더>`로 줌·팬 폴백 — MCP 없이도 완성본 생성.)
 4. **발행**: 미리보기 승인 후 기존 2단계 승인으로 게시(`buffer_post.py publish --video <공개URL> --type reel`).
 > Higgsfield MCP는 사용자 계정 인증(OAuth 호스티드) 또는 HIGGSFIELD_API_KEY/SECRET(자체 호스팅)이 필요하고 크레딧을 소모한다.
 
