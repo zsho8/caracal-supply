@@ -19,3 +19,7 @@ Thumbs.db
 
 # Node modules (if needed)
 node_modules/
+
+# Python build artifacts
+__pycache__/
+*.pyc
