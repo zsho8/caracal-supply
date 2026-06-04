@@ -150,6 +150,17 @@ bash ".claude/skills/caracal-instagram-cardnews/assets/publish_cardnews.sh" \
 - 예약 게시물 삭제(재예약 시): `buffer_post.py delete --id <postId>`. 이미지 교체 후 재예약할 땐 Buffer가 생성 시점 이미지를 가져가므로 **기존 예약 삭제 → 새로 publish**(이미지 캐시 우회 위해 `publish_cardnews.sh --bust <토큰>`으로 URL에 `?v=` 부여).
 > 공식 계정 게시는 브랜드 리스크가 있으니 **기본 승인 알림 모드를 유지**하는 것을 권장(휴대폰에서 최종 확인 후 게시). `--auto`(자동 게시)는 운영이 안정된 뒤에만 사용.
 
+## 트렌드 릴스 (Higgsfield MCP · AI 영상)
+요즘(2026) 인스타 트렌드형 9:16 릴스: **첫 3초 훅 + 빠른 컷 + 번인 자막 + 트렌딩 오디오**.
+정적 슬라이드쇼(`reels_gen.py`)를 대체하는 AI 영상 파이프라인이며 `reels_trend.py`로 동작한다.
+
+워크플로(자세히: `HIGGSFIELD_MCP_SETUP.md`):
+1. **브리프**: `reels_trend.py brief --spec <spec> --out <brief.json>` → 훅/본문/CTA 샷리스트 + 샷별 Higgsfield 프롬프트(카메라 모션·모델)·자막 자동 생성.
+2. **클립 생성**: 브리프의 각 샷을 **Higgsfield MCP 도구**(`mcp__higgsfield__*`)로 이미지→영상 생성 → `shot_<id>.mp4`로 폴더에 저장. (MCP 미연결 시 `.mcp.json.example` 참고해 등록.)
+3. **조립**: `reels_trend.py assemble --brief <brief.json> --clips <폴더> --out <mp4> [--music <트랙>]` → 1080×1920, 빠른 하드컷, 자막 번인, 음악 믹스, 인스타 호환 mp4.
+4. **발행**: 미리보기 승인 후 기존 2단계 승인으로 게시(`buffer_post.py publish --video <공개URL> --type reel`).
+> Higgsfield MCP는 사용자 계정 인증(OAuth 호스티드) 또는 HIGGSFIELD_API_KEY/SECRET(자체 호스팅)이 필요하고 크레딧을 소모한다.
+
 ## 포인트 컬러 (확정)
 `#E44E12`(주황) — **공식 CARACAL 워드마크 파일에서 추출한 브랜드 색**. (과거 #C8962A·#E5402F는 폐기)
 스펙 JSON의 `accent` 값으로 전체 카드뉴스에 일괄 반영된다.

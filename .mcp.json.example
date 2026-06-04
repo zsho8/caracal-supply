@@ -1,0 +1,28 @@
+{
+  "_note": "이 파일을 .mcp.json 으로 복사한 뒤 Higgsfield MCP 서버를 채워 넣으세요. 두 가지 방식 중 하나를 고릅니다. 자세한 설명은 .claude/skills/caracal-instagram-cardnews/HIGGSFIELD_MCP_SETUP.md 참고.",
+
+  "_option_A_hosted_oauth": {
+    "설명": "호스티드 MCP(권장 — 폰/웹 세션). 키 관리 없이 브라우저 OAuth로 Higgsfield 계정 인증. URL은 higgsfield.ai 대시보드의 MCP 항목에서 확인 후 채울 것.",
+    "mcpServers": {
+      "higgsfield": {
+        "type": "http",
+        "url": "<higgsfield 대시보드에서 발급한 MCP 서버 URL>"
+      }
+    }
+  },
+
+  "_option_B_self_hosted": {
+    "설명": "자체 호스팅 커뮤니티 MCP(예: jfikrat/higgsfield-mcp). 저장소를 클론/설치하고 .env의 HIGGSFIELD_API_KEY/HIGGSFIELD_SECRET 사용.",
+    "mcpServers": {
+      "higgsfield": {
+        "command": "python",
+        "args": ["-m", "higgsfield_mcp.server"],
+        "cwd": "/absolute/path/to/higgsfield-mcp",
+        "env": {
+          "HF_API_KEY": "${HIGGSFIELD_API_KEY}",
+          "HF_SECRET": "${HIGGSFIELD_SECRET}"
+        }
+      }
+    }
+  }
+}
