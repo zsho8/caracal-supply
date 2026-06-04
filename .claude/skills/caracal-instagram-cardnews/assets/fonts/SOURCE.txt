@@ -1,0 +1,6 @@
+NanumGothic.ttf / NanumGothicBold.ttf
+- 글꼴: 나눔고딕 (NanumGothic), 네이버(NAVER)
+- 라이선스: SIL Open Font License 1.1 (OFL) — 자유로운 재배포·임베딩 허용
+- 출처: Ubuntu fonts-nanum 패키지 (20200506-1)
+- 용도: 리눅스(Claude Code on the web/모바일) 세션에서 카드뉴스 한글 렌더링용 폴백 폰트.
+        macOS 로컬에서는 AppleSDGothicNeo.ttc를 그대로 사용한다.

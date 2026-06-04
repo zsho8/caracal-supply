@@ -22,10 +22,37 @@ DEFAULT_ACCENT = (240, 90, 28)   # #F05A1C
 
 W, H = 1080, 1350
 MARGIN = 84
-FONT_TTC = "/System/Library/Fonts/AppleSDGothicNeo.ttc"
+# macOS는 AppleSDGothicNeo.ttc(가중치=index)를 그대로 사용한다.
+# 리눅스(예: Claude Code on the web, 모바일 세션)에는 이 폰트가 없으므로
+# 나눔고딕 등 한글 폰트로 자동 폴백한다. CARACAL_FONT_TTC 환경변수로 직접 지정도 가능.
+FONT_TTC = os.environ.get("CARACAL_FONT_TTC", "/System/Library/Fonts/AppleSDGothicNeo.ttc")
 WEIGHT = {"regular": 0, "medium": 2, "semibold": 4, "bold": 6}
 ASSET_DIR = os.path.dirname(os.path.abspath(__file__))
 BRAND_DIR = os.path.join(ASSET_DIR, "brand")
+
+def _first_existing(paths):
+    for p in paths:
+        if p and os.path.exists(p): return p
+    return None
+
+# 리눅스 한글 폰트 폴백(가중치별 파일).
+# 우선순위: 저장소 번들 폰트(네트워크 불필요) → 시스템 나눔고딕 → 노토산스 CJK.
+_BUNDLE = os.path.join(ASSET_DIR, "fonts")
+_LINUX_FONT = {
+    "regular":  _first_existing([os.path.join(_BUNDLE, "NanumGothic.ttf"),
+                                 "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
+                                 "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"]),
+    "medium":   _first_existing([os.path.join(_BUNDLE, "NanumGothic.ttf"),
+                                 "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
+                                 "/usr/share/fonts/opentype/noto/NotoSansCJK-Medium.ttc"]),
+    "semibold": _first_existing([os.path.join(_BUNDLE, "NanumGothicBold.ttf"),
+                                 "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf",
+                                 "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"]),
+    "bold":     _first_existing([os.path.join(_BUNDLE, "NanumGothicBold.ttf"),
+                                 "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf",
+                                 "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"]),
+}
+_USE_TTC = os.path.exists(FONT_TTC)
 
 def hex_to_rgb(s):
     s = s.lstrip("#"); return tuple(int(s[i:i+2], 16) for i in (0, 2, 4))
@@ -33,7 +60,12 @@ def hex_to_rgb(s):
 _fc = {}
 def font(w, s):
     k = (w, s)
-    if k not in _fc: _fc[k] = ImageFont.truetype(FONT_TTC, s, index=WEIGHT.get(w, 0))
+    if k not in _fc:
+        if _USE_TTC:
+            _fc[k] = ImageFont.truetype(FONT_TTC, s, index=WEIGHT.get(w, 0))
+        else:
+            path = _LINUX_FONT.get(w) or _LINUX_FONT["regular"]
+            _fc[k] = ImageFont.truetype(path, s) if path else ImageFont.load_default()
     return _fc[k]
 
 _lc = {}
