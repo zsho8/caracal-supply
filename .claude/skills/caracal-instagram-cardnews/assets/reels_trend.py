@@ -183,11 +183,13 @@ def kenburns_clip(img, dur, fps, motion, out):
         step = 0.0016 if motion == "punch-in-hard" else 0.0011
         z = f"min(zoom+{step},1.2)"; x = "iw/2-(iw/zoom/2)"; y = "ih/2-(ih/zoom/2)"
     # 출력(1080x1920)보다 약간 큰 1.25x로만 프리스케일 → 줌·팬 여유 확보하면서 가볍고 빠르게.
+    # 중요: 단일 이미지 입력 + zoompan d=frames 로 정확히 frames개만 생성한다.
+    # (-loop 1 -t 를 쓰면 zoompan이 입력 프레임마다 d개를 곱해 폭증·지연되는 함정이 있다.)
     PS_W, PS_H = 1350, 2400
     vf = (f"scale={PS_W}:{PS_H}:force_original_aspect_ratio=increase,crop={PS_W}:{PS_H},"
           f"zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={W}x{H}:fps={fps},format=yuv420p")
-    run([FF, "-y", "-loop", "1", "-t", f"{dur:.3f}", "-i", img, "-an",
-         "-vf", vf, "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", out], f"kenburns {os.path.basename(img)}")
+    run([FF, "-y", "-i", img, "-an", "-vf", vf, "-r", str(fps),
+         "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", out], f"kenburns {os.path.basename(img)}")
     return out
 
 def cmd_assemble(a):
