@@ -110,23 +110,35 @@ python3 ".claude/skills/caracal-instagram-cardnews/assets/cardnews_gen.py" \
 
 ### 7) topic-bank 갱신 & 발행
 - 해당 주제 상태를 `발행대기(검수)`로 바꾸고 날짜·파일경로·캡션 위치 기록, 발행 로그에 추가.
-- **발행 방식(현재 설정 = 검수 후 수동 승인):**
-  - 카드뉴스 PNG 경로 + 캡션을 사용자에게 보고하고 승인을 요청한다. **자동 게시하지 않는다.**
-- **완전 자동 게시로 전환 시(`.env`에 BUFFER_API_KEY 입력 후):** 아래 Buffer 절차 사용.
+- **발행 방식(현재 설정 = 2단계 승인):**
+  - **1차 승인(예약 전 · Claude 세션):** 카드뉴스 PNG(가능하면 이미지 첨부) + 캡션 + 예약 시각을 사용자에게 보여주고 **반드시 `AskUserQuestion`으로 승인을 받는다.** 승인 전에는 절대 Buffer로 보내지 않는다.
+    - 도구 차원 안전장치: `publish_cardnews.sh`는 `--approved` 없이 실행하면 **미리보기만 출력하고 외부 동작(이미지 push·Buffer 전송) 없이 exit 10**으로 멈춘다. 사용자가 승인하면 같은 명령에 `--approved`를 붙여 다시 실행한다.
+  - **2차 승인(게시 시각 · 휴대폰):** Buffer가 `notification` 모드로 예약 → 예약 시각에 **휴대폰 Buffer 앱 푸시**가 오고, 앱에서 **'게시'를 눌러야** 인스타에 올라간다.
+  - 1차 미리보기 단계를 건너뛰지 않는다. 게시 시각 자동 게시(2차 생략)는 사용자가 명시적으로 요청할 때만 `--auto`.
 
 ---
 
-## Buffer 자동 게시 (✅ 연동 검증 완료 — 2026-06-04 실제 예약 게시 성공)
+## Buffer 게시 (✅ 연동 검증 완료 — 2026-06-04 실제 예약 게시 성공 / 기본 = 2단계 승인)
+> **2단계 승인 흐름:**
+> 1. **1차(예약 전·세션):** `--approved` 없이 `publish_cardnews.sh` 실행 → 미리보기(슬라이드 수·예약시각·채널·캡션 전문)만 출력하고 외부 동작 없이 멈춤(exit 10). 사용자 승인 후 `--approved`로 재실행해야 실제 예약이 진행된다.
+> 2. **2차(게시 시각·휴대폰):** `notification` 모드라 예약 시각에 휴대폰 **Buffer 앱**으로 푸시가 오고, 앱에서 '게시'를 눌러야 인스타에 업로드된다. (Buffer 모바일 앱 설치 + 알림 허용 + 인스타 채널 연결 필요.)
+> 게시 시각 자동 게시(2차 생략)는 `--auto`.
 Buffer(2026)는 GraphQL API + 개인 API 키 + **이미지 URL만** 허용. 그래서 PNG를 GitHub(=Vercel 사이트)로
 push해 공개 URL을 만든 뒤 Buffer로 캐러셀을 예약한다. 전 과정을 오케스트레이터 한 줄로 실행:
 - 연결 상태: 인스타 채널 `caracal_supply`가 `.env`의 BUFFER_CHANNEL_ID에 저장됨.
-- 확정 스키마(`buffer_post.py`에 반영 완료): `channels(input:{organizationId})`, `createPost`는 union 반환(`PostActionSuccess`/에러), assets는 `{image:{url}}`, **인스타는 `metadata.instagram.type="post"` + `shouldShareToFeed=true` 필수**, schedulingType `automatic`(자동게시)/`notification`(앱알림 수동), mode `customScheduled`(--due)/`addToQueue`(기본)/`shareNow`(--now).
+- 확정 스키마(`buffer_post.py`에 반영 완료): `channels(input:{organizationId})`, `createPost`는 union 반환(`PostActionSuccess`/에러), assets는 `{image:{url}}`, **인스타는 `metadata.instagram.type="post"` + `shouldShareToFeed=true` 필수**, schedulingType `notification`(**기본** — 휴대폰 앱 승인 알림 후 수동 게시)/`automatic`(`--auto`일 때만 자동게시), mode `customScheduled`(--due)/`addToQueue`(기본)/`shareNow`(--now).
 ```bash
+# 1차: 미리보기(승인용) — 외부 동작 없음, 내용 확인만
 bash ".claude/skills/caracal-instagram-cardnews/assets/publish_cardnews.sh" \
   --dir "marketing-agent/output/cardnews-<번호>" \
-  --caption "marketing-agent/output/caption-<번호>.txt"   # [선택] --due "2026-06-04T19:30:00+09:00"
+  --caption "marketing-agent/output/caption-<번호>.txt" --due "2026-06-04T19:30:00+09:00"
+# 사용자 승인 후: 동일 명령 + --approved (실제 예약 진행)
+bash ".claude/skills/caracal-instagram-cardnews/assets/publish_cardnews.sh" \
+  --dir "marketing-agent/output/cardnews-<번호>" \
+  --caption "marketing-agent/output/caption-<번호>.txt" --due "2026-06-04T19:30:00+09:00" --approved
+#   자동 게시(2차 생략)는 끝에 --auto 추가
 ```
-동작: ①PNG를 main에 commit/push → ②Vercel 배포 200 확인까지 폴링 → ③`buffer_post.py publish`로 인스타 예약.
+동작: (1차 승인) 미리보기 → 멈춤 → 사용자 승인 → **--approved 재실행** → ①PNG를 main에 commit/push → ②Vercel 배포 200 확인까지 폴링 → ③`buffer_post.py publish`로 인스타 **승인 알림 예약** → (2차 승인) 예약 시각에 휴대폰 Buffer 앱 알림에서 '게시'.
 
 - `.env`에 `BUFFER_API_KEY`가 비어 있으면 스크립트가 **exit 3**으로 멈춤 → 자동 게시 대신 **검수 후 수동 승인**으로 폴백(경로+캡션 보고).
 - 키 최초 입력 후 1회 검증·채널 ID 확인:
@@ -136,7 +148,18 @@ bash ".claude/skills/caracal-instagram-cardnews/assets/publish_cardnews.sh" \
   ```
 - 스키마는 이미 확정·반영됨(위 참조). 향후 Buffer가 베타 스키마를 또 바꾸면 `introspect`로 재확인 후 `inp`/mutation 조정.
 - 예약 게시물 삭제(재예약 시): `buffer_post.py delete --id <postId>`. 이미지 교체 후 재예약할 땐 Buffer가 생성 시점 이미지를 가져가므로 **기존 예약 삭제 → 새로 publish**(이미지 캐시 우회 위해 `publish_cardnews.sh --bust <토큰>`으로 URL에 `?v=` 부여).
-> 공식 계정 자동 게시는 브랜드 리스크가 있으니, 운영 초기에는 `--due`로 예약을 걸어 Buffer 대시보드에서 마지막 확인 후 나가게 하는 것을 권장.
+> 공식 계정 게시는 브랜드 리스크가 있으니 **기본 승인 알림 모드를 유지**하는 것을 권장(휴대폰에서 최종 확인 후 게시). `--auto`(자동 게시)는 운영이 안정된 뒤에만 사용.
+
+## 트렌드 릴스 (Higgsfield MCP · AI 영상)
+요즘(2026) 인스타 트렌드형 9:16 릴스: **첫 3초 훅 + 빠른 컷 + 번인 자막 + 트렌딩 오디오**.
+정적 슬라이드쇼(`reels_gen.py`)를 대체하는 AI 영상 파이프라인이며 `reels_trend.py`로 동작한다.
+
+워크플로(자세히: `HIGGSFIELD_MCP_SETUP.md`):
+1. **브리프**: `reels_trend.py brief --spec <spec> --out <brief.json>` → 훅/본문/CTA 샷리스트 + 샷별 Higgsfield 프롬프트(카메라 모션·모델)·자막 자동 생성.
+2. **클립 생성**: 브리프의 각 샷을 **Higgsfield MCP 도구**(`mcp__higgsfield__*`)로 이미지→영상 생성 → `shot_<id>.mp4`로 폴더에 저장. (MCP 미연결 시 `.mcp.json.example` 참고해 등록.)
+3. **조립**: `reels_trend.py assemble --brief <brief.json> --clips <폴더> --out <mp4> [--music <트랙>]` → 1080×1920, 빠른 하드컷, 자막 번인, 음악 믹스, 인스타 호환 mp4. (Higgsfield 클립이 없으면 `--slides <카드뉴스 폴더>`로 줌·팬 폴백 — MCP 없이도 완성본 생성.)
+4. **발행**: 미리보기 승인 후 기존 2단계 승인으로 게시(`buffer_post.py publish --video <공개URL> --type reel`).
+> Higgsfield MCP는 사용자 계정 인증(OAuth 호스티드) 또는 HIGGSFIELD_API_KEY/SECRET(자체 호스팅)이 필요하고 크레딧을 소모한다.
 
 ## 포인트 컬러 (확정)
 `#E44E12`(주황) — **공식 CARACAL 워드마크 파일에서 추출한 브랜드 색**. (과거 #C8962A·#E5402F는 폐기)
