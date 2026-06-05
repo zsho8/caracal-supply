@@ -1,0 +1,99 @@
+{
+  "topic": "하이록스 입문 가이드 — 발목·종아리부터",
+  "aspect": "9:16",
+  "fps": 30,
+  "music_hint": "업비트/모멘텀 계열 트렌딩 오디오로 교체(인스타 음원 라이브러리). 미지정 시 안전 BGM 폴백.",
+  "trend_notes": "첫 3초 훅 고정, 샷당 2~3초 빠른 컷, 자막은 1~2초 내 노출. 총 15~25초 목표.",
+  "shots": [
+    {
+      "id": "01",
+      "role": "hook",
+      "dur": 3.0,
+      "source_image": "slide_01.png",
+      "higgsfield": {
+        "model": "kling-3.0",
+        "motion": "punch-in-hard",
+        "prompt": "다들 하이록스 한다던데?. fast punch-in on the subject, attention grabbing first frame, cinematic, high energy. vertical 9:16, brand mood: energetic sports, clean."
+      },
+      "caption": {
+        "text": "요즘 인스타 점령 중",
+        "style": "hook"
+      }
+    },
+    {
+      "id": "02",
+      "role": "point",
+      "dur": 2.6,
+      "source_image": "slide_02.png",
+      "higgsfield": {
+        "model": "kling-3.0",
+        "motion": "punch-in",
+        "prompt": "사실상 8km + 근력운동 8개. camera slowly pushes in, subtle handheld energy, cinematic. vertical 9:16, brand mood: energetic sports, clean."
+      },
+      "caption": {
+        "text": "사실상 8km + 근력운동 8개",
+        "style": "point"
+      }
+    },
+    {
+      "id": "03",
+      "role": "point",
+      "dur": 2.6,
+      "source_image": "slide_03.png",
+      "higgsfield": {
+        "model": "kling-3.0",
+        "motion": "whip-pan",
+        "prompt": "러닝만 8km 숨어 있어요. fast whip pan reveal into the subject, dynamic, energetic. vertical 9:16, brand mood: energetic sports, clean."
+      },
+      "caption": {
+        "text": "러닝만 8km 숨어 있어요",
+        "style": "point"
+      }
+    },
+    {
+      "id": "04",
+      "role": "point",
+      "dur": 2.6,
+      "source_image": "slide_04.png",
+      "higgsfield": {
+        "model": "kling-3.0",
+        "motion": "orbit",
+        "prompt": "이 8가지를 다 통과해야 끝. smooth orbit around the subject, shallow depth of field. vertical 9:16, brand mood: energetic sports, clean."
+      },
+      "caption": {
+        "text": "이 8가지를 다 통과해야 끝",
+        "style": "point"
+      }
+    },
+    {
+      "id": "05",
+      "role": "point",
+      "dur": 2.6,
+      "source_image": "slide_05.png",
+      "higgsfield": {
+        "model": "kling-3.0",
+        "motion": "crane-up",
+        "prompt": "왜 종아리가 먼저 터질까?. crane up reveal, epic, motivational. vertical 9:16, brand mood: energetic sports, clean."
+      },
+      "caption": {
+        "text": "왜 종아리가 먼저 터질까?",
+        "style": "point"
+      }
+    },
+    {
+      "id": "06",
+      "role": "cta",
+      "dur": 3.0,
+      "source_image": "slide_06.png",
+      "higgsfield": {
+        "model": "kling-3.0",
+        "motion": "speed-ramp",
+        "prompt": "진짜 적은 피로 누적. speed ramp from slow to fast, kinetic. vertical 9:16, brand mood: energetic sports, clean."
+      },
+      "caption": {
+        "text": "진짜 적은 피로 누적",
+        "style": "cta"
+      }
+    }
+  ]
+}
