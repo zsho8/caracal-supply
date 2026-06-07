@@ -299,9 +299,12 @@ def cmd_assemble(a):
     else:
         captioned = joined
 
-    # 4) 오디오: --music 있으면 사용(트렌딩 오디오), 없으면 안전 BGM 베드 폴백
+    # 4) 오디오: --silent(인스타 앱에서 트렌딩 오디오 입힐 용) / --music(트랙) / 기본 BGM
     audio = f"{tmp}/audio.m4a"
-    if a.music and os.path.exists(a.music):
+    if getattr(a, "silent", False):
+        run([FF, "-y", "-f", "lavfi", "-t", f"{total:.3f}", "-i", "anullsrc=r=44100:cl=stereo",
+             "-c:a", "aac", "-b:a", "128k", audio], "silent")
+    elif a.music and os.path.exists(a.music):
         run([FF, "-y", "-i", a.music, "-t", f"{total:.3f}",
              "-af", f"afade=t=in:d=0.6,afade=t=out:st={max(0,total-1.2):.2f}:d=1.2,volume=0.9",
              "-c:a", "aac", "-b:a", "192k", audio], "music")
@@ -331,7 +334,12 @@ def cmd_assemble(a):
     run([FF, "-y", "-i", captioned, "-i", audio, "-c:v", "copy", "-c:a", "aac",
          "-shortest", "-movflags", "+faststart", a.out], "mux")
     kb = os.path.getsize(a.out) // 1024
-    mus = "트렌딩 오디오" if (a.music and os.path.exists(a.music)) else "안전 BGM 폴백"
+    if getattr(a, "silent", False):
+        mus = "무음(인스타 앱에서 트렌딩 오디오 추가)"
+    elif a.music and os.path.exists(a.music):
+        mus = "트렌딩 오디오(트랙)"
+    else:
+        mus = "안전 BGM 폴백"
     print(f"[OK] 트렌드 릴스: {a.out}  ({kb}KB, 약 {total:.1f}초, 샷 {len(shots)}개, 음악={mus})")
 
 
@@ -347,6 +355,8 @@ def main():
     s.add_argument("--clips", default="", help="Higgsfield 클립 폴더(shot_<id>.mp4)")
     s.add_argument("--slides", default="", help="클립 없을 때 폴백: 슬라이드 PNG 폴더(줌·팬 모션 생성)")
     s.add_argument("--out", required=True); s.add_argument("--music", default="")
+    s.add_argument("--silent", action="store_true",
+                   help="무음 트랙으로 출력(발행 시 인스타 앱에서 트렌딩 오디오를 직접 입힐 때)")
     a = ap.parse_args()
     a.fn(a)
 
