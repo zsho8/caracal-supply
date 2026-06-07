@@ -141,20 +141,22 @@ def _is_accent(w):
     return bool(re.search(r"\d", core)) or bool(re.fullmatch(r"[A-Za-z][A-Za-z0-9]+", core))
 
 def render_caption_png(text, style, out_path):
-    """투명 배경 1080x1920 자막 오버레이 PNG(번인용). 훅은 크게, 키워드는 강조색."""
+    """투명 배경 1080x1920 자막 PNG(번인용).
+    사진을 가리지 않도록 불투명 박스 없이, 하단 그라데이션 스크림 + 강한 외곽선만 사용.
+    자막은 모두 하단 한 구역에 모아 시선 분산을 막는다. 키워드는 강조색."""
     img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     if not text:
         img.save(out_path); return
     hook = (style == "hook")
-    # 훅은 크게 시작하되 한 줄에 들어가도록 자동 축소(어색한 한 글자 줄바꿈 방지)
+    # 훅은 크게 시작하되 한 줄에 들어가도록 자동 축소
     if hook:
         full = " ".join(_clean_word(w) for w in text.split())
-        size = 112
+        size = 104
         while size > 74 and d.textbbox((0, 0), full, font=_font(FONT_BOLD, size))[2] > W - 96:
             size -= 4
     else:
-        size = 78
+        size = 74
     font = _font(FONT_BOLD, size)
     maxw = (W - 92) if hook else (W - 150)
     space_w = d.textbbox((0, 0), " ", font=font)[2]
@@ -168,24 +170,32 @@ def render_caption_png(text, style, out_path):
         else:
             lines.append(cur); cur = [w]
     if cur: lines.append(cur)
-    lh = int(size * 1.3); block_h = lh * len(lines)
-    # 훅은 상단(시선 즉시), 본문/CTA는 하단
-    y0 = int(H * 0.13) if hook else H - block_h - int(H * 0.17)
-    pad = 38
-    bar_top = y0 - pad; bar_bot = y0 + block_h + pad
-    d.rectangle([0, bar_top, W, bar_bot], fill=(12, 12, 14, 150))
-    if hook:
-        d.rectangle([0, bar_top, 22, bar_bot], fill=ACCENT + (255,))
+    lh = int(size * 1.28); block_h = lh * len(lines)
+
+    # 하단에만 부드러운 그라데이션 스크림(사진 상단 ~60%는 그대로 노출)
+    top = int(H * 0.60)
+    grad = Image.new("L", (1, H), 0)
+    gpx = grad.load()
+    for yy in range(top, H):
+        gpx[0, yy] = int(175 * (yy - top) / (H - top))
+    scrim = Image.new("RGBA", (W, H), (8, 8, 10, 255))
+    scrim.putalpha(grad.resize((W, H)))
+    img = Image.alpha_composite(img, scrim)
+    d = ImageDraw.Draw(img)
+
+    # 훅·본문 모두 하단 한 구역에 정렬(분산 방지)
+    y0 = H - block_h - int(H * 0.11)
     y = y0
-    for line in lines:
+    for li, line in enumerate(lines):
         widths = [d.textbbox((0, 0), _clean_word(w), font=font)[2] for w in line]
         total = sum(widths) + space_w * (len(line) - 1)
         x = (W - total) // 2
         for w, wd in zip(line, widths):
             cw = _clean_word(w)
             col = (ACCENT + (255,)) if _is_accent(w) else (255, 255, 255, 255)
-            for dx, dy in ((-3, 0), (3, 0), (0, -3), (0, 3), (-2, -2), (2, 2)):
-                d.text((x + dx, y + dy), cw, font=font, fill=(0, 0, 0, 235))
+            # 박스 없이도 또렷하게 — 두꺼운 검정 외곽선
+            for dx, dy in ((-4,0),(4,0),(0,-4),(0,4),(-3,-3),(3,3),(-3,3),(3,-3)):
+                d.text((x + dx, y + dy), cw, font=font, fill=(0, 0, 0, 240))
             d.text((x, y), cw, font=font, fill=col)
             x += wd + space_w
         y += lh
