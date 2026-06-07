@@ -36,10 +36,10 @@ def _pick_font(*names):
         p = os.path.join(_FONTS, n)
         if os.path.exists(p): return p
     return os.path.join(_FONTS, names[-1])
-# 자막 폰트: 인스타 한글 콘텐츠에서 널리 쓰이는 나눔스퀘어라운드(둥근 산세리프).
-# 없으면 나눔고딕으로 폴백.
-FONT_BOLD = _pick_font("NanumSquareRoundB.ttf", "NanumGothicBold.ttf")
-FONT_REG  = _pick_font("NanumSquareRoundR.ttf", "NanumGothic.ttf")
+# 자막 폰트: 인스타·웹에서 가장 많이 쓰이는 Pretendard(OFL). 없으면 나눔 계열로 폴백.
+FONT_HOOK = _pick_font("Pretendard-ExtraBold.otf", "Pretendard-Bold.otf", "NanumSquareRoundB.ttf", "NanumGothicBold.ttf")
+FONT_BOLD = _pick_font("Pretendard-Bold.otf", "NanumSquareRoundB.ttf", "NanumGothicBold.ttf")
+FONT_REG  = _pick_font("Pretendard-SemiBold.otf", "NanumSquareRoundR.ttf", "NanumGothic.ttf")
 
 # ── 트렌드 카메라 모션 프리셋(Higgsfield 프롬프트 힌트) ───────────────
 # 첫 샷은 강한 푸시인(훅), 이후 샷은 변화를 주어 빠른 컷에 리듬을 준다.
@@ -157,15 +157,16 @@ def render_caption_png(text, style, out_path):
     if not text:
         img.save(out_path); return
     hook = (style == "hook")
+    fpath = FONT_HOOK if hook else FONT_BOLD   # 훅은 ExtraBold로 임팩트
     # 훅은 크게 시작하되 한 줄에 들어가도록 자동 축소
     if hook:
         full = " ".join(_clean_word(w) for w in text.split())
         size = 104
-        while size > 74 and d.textbbox((0, 0), full, font=_font(FONT_BOLD, size))[2] > W - 96:
+        while size > 74 and d.textbbox((0, 0), full, font=_font(fpath, size))[2] > W - 96:
             size -= 4
     else:
-        size = 74
-    font = _font(FONT_BOLD, size)
+        size = 76
+    font = _font(fpath, size)
     maxw = (W - 92) if hook else (W - 150)
     space_w = d.textbbox((0, 0), " ", font=font)[2]
     # 단어 단위 줄바꿈(강조 토큰 정보 유지)

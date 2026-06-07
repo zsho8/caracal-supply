@@ -10,3 +10,9 @@ NanumSquareRoundB.ttf / NanumSquareRoundR.ttf
 - 라이선스: SIL Open Font License (OFL) — 재배포·임베딩 허용
 - 출처: Ubuntu fonts-nanum 패키지
 - 용도: 릴스(reels_trend.py) 자막 폰트. 인스타 한글 콘텐츠에서 널리 쓰이는 둥근 산세리프.
+
+Pretendard-Bold.otf / Pretendard-ExtraBold.otf / Pretendard-SemiBold.otf
+- 글꼴: Pretendard, 길형진(orioncactus)
+- 라이선스: SIL Open Font License 1.1 (OFL) — 재배포·임베딩 허용
+- 출처: github.com/orioncactus/pretendard (v1.3.9)
+- 용도: 릴스(reels_trend.py) 자막 기본 폰트(인스타·웹에서 가장 널리 쓰임). 훅=ExtraBold, 본문=Bold.
