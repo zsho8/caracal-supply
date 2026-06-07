@@ -30,8 +30,16 @@ FF = imageio_ffmpeg.get_ffmpeg_exe()
 W, H = 1080, 1920
 ACCENT = (228, 78, 18)        # #E44E12 카라칼 포인트
 ASSET_DIR = os.path.dirname(os.path.abspath(__file__))
-FONT_BOLD = os.path.join(ASSET_DIR, "fonts", "NanumGothicBold.ttf")
-FONT_REG  = os.path.join(ASSET_DIR, "fonts", "NanumGothic.ttf")
+_FONTS = os.path.join(ASSET_DIR, "fonts")
+def _pick_font(*names):
+    for n in names:
+        p = os.path.join(_FONTS, n)
+        if os.path.exists(p): return p
+    return os.path.join(_FONTS, names[-1])
+# 자막 폰트: 인스타 한글 콘텐츠에서 널리 쓰이는 나눔스퀘어라운드(둥근 산세리프).
+# 없으면 나눔고딕으로 폴백.
+FONT_BOLD = _pick_font("NanumSquareRoundB.ttf", "NanumGothicBold.ttf")
+FONT_REG  = _pick_font("NanumSquareRoundR.ttf", "NanumGothic.ttf")
 
 # ── 트렌드 카메라 모션 프리셋(Higgsfield 프롬프트 힌트) ───────────────
 # 첫 샷은 강한 푸시인(훅), 이후 샷은 변화를 주어 빠른 컷에 리듬을 준다.
@@ -190,18 +198,23 @@ def render_caption_png(text, style, out_path):
     scrim.putalpha(grad.resize((W, H)))
     img = Image.alpha_composite(img, scrim)
     d = ImageDraw.Draw(img)
+    # 자연스러운 처리: 깔끔한 외곽선(stroke) + 부드러운 그림자(박스 없이도 또렷)
+    sw = max(2, size // 24)
+    soff = max(3, size // 18)
     y = y0
-    for li, line in enumerate(lines):
-        widths = [d.textbbox((0, 0), _clean_word(w), font=font)[2] for w in line]
+    for line in lines:
+        widths = [d.textbbox((0, 0), _clean_word(w), font=font, stroke_width=sw)[2] for w in line]
         total = sum(widths) + space_w * (len(line) - 1)
         x = (W - total) // 2
         for w, wd in zip(line, widths):
             cw = _clean_word(w)
             col = (ACCENT + (255,)) if _is_accent(w) else (255, 255, 255, 255)
-            # 박스 없이도 또렷하게 — 두꺼운 검정 외곽선
-            for dx, dy in ((-4,0),(4,0),(0,-4),(0,4),(-3,-3),(3,3),(-3,3),(3,-3)):
-                d.text((x + dx, y + dy), cw, font=font, fill=(0, 0, 0, 240))
-            d.text((x, y), cw, font=font, fill=col)
+            # 부드러운 반투명 그림자
+            d.text((x + soff // 2, y + soff), cw, font=font, fill=(0, 0, 0, 110),
+                   stroke_width=sw, stroke_fill=(0, 0, 0, 110))
+            # 본 글자 + 가는 외곽선
+            d.text((x, y), cw, font=font, fill=col,
+                   stroke_width=sw, stroke_fill=(0, 0, 0, 205))
             x += wd + space_w
         y += lh
     img.save(out_path)

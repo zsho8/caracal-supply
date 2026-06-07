@@ -4,3 +4,9 @@ NanumGothic.ttf / NanumGothicBold.ttf
 - 출처: Ubuntu fonts-nanum 패키지 (20200506-1)
 - 용도: 리눅스(Claude Code on the web/모바일) 세션에서 카드뉴스 한글 렌더링용 폴백 폰트.
         macOS 로컬에서는 AppleSDGothicNeo.ttc를 그대로 사용한다.
+
+NanumSquareRoundB.ttf / NanumSquareRoundR.ttf
+- 글꼴: 나눔스퀘어라운드 (NanumSquareRound), 네이버(NAVER)
+- 라이선스: SIL Open Font License (OFL) — 재배포·임베딩 허용
+- 출처: Ubuntu fonts-nanum 패키지
+- 용도: 릴스(reels_trend.py) 자막 폰트. 인스타 한글 콘텐츠에서 널리 쓰이는 둥근 산세리프.
