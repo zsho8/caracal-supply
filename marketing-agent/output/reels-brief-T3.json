@@ -1,0 +1,99 @@
+{
+  "topic": "러닝크루 발 보호 5계명",
+  "aspect": "9:16",
+  "fps": 30,
+  "music_hint": "업비트/모멘텀 계열 트렌딩 오디오로 교체(인스타 음원 라이브러리). 미지정 시 안전 BGM 폴백.",
+  "trend_notes": "첫 3초 훅 고정, 샷당 2~3초 빠른 컷, 자막은 1~2초 내 노출. 총 15~25초 목표.",
+  "shots": [
+    {
+      "id": "01",
+      "role": "hook",
+      "dur": 3.0,
+      "source_image": "slide_01.png",
+      "higgsfield": {
+        "model": "kling-3.0",
+        "motion": "punch-in-hard",
+        "prompt": "크루런 전 이것 안 하면 후회. fast punch-in on the subject, attention grabbing first frame, cinematic, high energy. vertical 9:16, brand mood: energetic sports, clean."
+      },
+      "caption": {
+        "text": "러닝크루 시즌",
+        "style": "hook"
+      }
+    },
+    {
+      "id": "02",
+      "role": "point",
+      "dur": 2.6,
+      "source_image": "slide_02.png",
+      "higgsfield": {
+        "model": "kling-3.0",
+        "motion": "punch-in",
+        "prompt": "러닝 부상 대부분 발·발목에서. camera slowly pushes in, subtle handheld energy, cinematic. vertical 9:16, brand mood: energetic sports, clean."
+      },
+      "caption": {
+        "text": "러닝 부상 대부분 발·발목에서",
+        "style": "point"
+      }
+    },
+    {
+      "id": "03",
+      "role": "point",
+      "dur": 2.6,
+      "source_image": "slide_03.png",
+      "higgsfield": {
+        "model": "kling-3.0",
+        "motion": "whip-pan",
+        "prompt": "내 발에 맞는 러닝화. fast whip pan reveal into the subject, dynamic, energetic. vertical 9:16, brand mood: energetic sports, clean."
+      },
+      "caption": {
+        "text": "내 발에 맞는 러닝화",
+        "style": "point"
+      }
+    },
+    {
+      "id": "04",
+      "role": "point",
+      "dur": 2.6,
+      "source_image": "slide_04.png",
+      "higgsfield": {
+        "model": "kling-3.0",
+        "motion": "orbit",
+        "prompt": "출발 전 발목 꼭 풀기. smooth orbit around the subject, shallow depth of field. vertical 9:16, brand mood: energetic sports, clean."
+      },
+      "caption": {
+        "text": "출발 전 발목 꼭 풀기",
+        "style": "point"
+      }
+    },
+    {
+      "id": "05",
+      "role": "point",
+      "dur": 2.6,
+      "source_image": "slide_05.png",
+      "higgsfield": {
+        "model": "kling-3.0",
+        "motion": "crane-up",
+        "prompt": "대화 가능한 페이스로. crane up reveal, epic, motivational. vertical 9:16, brand mood: energetic sports, clean."
+      },
+      "caption": {
+        "text": "대화 가능한 페이스로",
+        "style": "point"
+      }
+    },
+    {
+      "id": "06",
+      "role": "cta",
+      "dur": 3.0,
+      "source_image": "slide_06.png",
+      "higgsfield": {
+        "model": "kling-3.0",
+        "motion": "speed-ramp",
+        "prompt": "달린 후 종아리 케어 필수. speed ramp from slow to fast, kinetic. vertical 9:16, brand mood: energetic sports, clean."
+      },
+      "caption": {
+        "text": "달린 후 종아리 케어 필수",
+        "style": "cta"
+      }
+    }
+  ]
+}
