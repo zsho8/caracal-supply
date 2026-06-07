@@ -130,35 +130,64 @@ def _wrap(draw, text, font, maxw):
     if cur: lines.append(cur)
     return lines or [text]
 
+def _clean_word(w):
+    return w.strip("*")
+
+def _is_accent(w):
+    """강조색 토큰: *별표* 감싼 단어 / 숫자 포함(8km,4.9,85%) / 영문(Zone2,HYROX)."""
+    if w.startswith("*") and w.endswith("*") and len(w) > 2:
+        return True
+    core = _clean_word(w)
+    return bool(re.search(r"\d", core)) or bool(re.fullmatch(r"[A-Za-z][A-Za-z0-9]+", core))
+
 def render_caption_png(text, style, out_path):
-    """투명 배경 1080x1920 자막 오버레이 PNG 생성(번인용)."""
+    """투명 배경 1080x1920 자막 오버레이 PNG(번인용). 훅은 크게, 키워드는 강조색."""
     img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     if not text:
         img.save(out_path); return
     hook = (style == "hook")
-    size = 92 if hook else 72
+    # 훅은 크게 시작하되 한 줄에 들어가도록 자동 축소(어색한 한 글자 줄바꿈 방지)
+    if hook:
+        full = " ".join(_clean_word(w) for w in text.split())
+        size = 112
+        while size > 74 and d.textbbox((0, 0), full, font=_font(FONT_BOLD, size))[2] > W - 96:
+            size -= 4
+    else:
+        size = 78
     font = _font(FONT_BOLD, size)
-    maxw = W - 160
-    lines = _wrap(d, text, font, maxw)
-    lh = int(size * 1.28)
-    block_h = lh * len(lines)
-    # 훅은 화면 상단 1/3, 본문/CTA는 하단
-    y0 = int(H * 0.16) if hook else H - block_h - int(H * 0.16)
-    pad = 34
-    # 반투명 배경 바(가독성)
+    maxw = (W - 92) if hook else (W - 150)
+    space_w = d.textbbox((0, 0), " ", font=font)[2]
+    # 단어 단위 줄바꿈(강조 토큰 정보 유지)
+    words = text.split()
+    lines, cur = [], []
+    for w in words:
+        trial = " ".join(_clean_word(x) for x in cur + [w])
+        if not cur or d.textbbox((0, 0), trial, font=font)[2] <= maxw:
+            cur.append(w)
+        else:
+            lines.append(cur); cur = [w]
+    if cur: lines.append(cur)
+    lh = int(size * 1.3); block_h = lh * len(lines)
+    # 훅은 상단(시선 즉시), 본문/CTA는 하단
+    y0 = int(H * 0.13) if hook else H - block_h - int(H * 0.17)
+    pad = 38
     bar_top = y0 - pad; bar_bot = y0 + block_h + pad
     d.rectangle([0, bar_top, W, bar_bot], fill=(12, 12, 14, 150))
-    if hook:  # 훅엔 포인트 컬러 강조 바
-        d.rectangle([0, bar_top, 18, bar_bot], fill=ACCENT + (255,))
+    if hook:
+        d.rectangle([0, bar_top, 22, bar_bot], fill=ACCENT + (255,))
     y = y0
-    for ln in lines:
-        tw = d.textbbox((0, 0), ln, font=font)[2]
-        x = (W - tw) // 2
-        # 외곽선(그림자)으로 어떤 배경에도 또렷하게
-        for dx, dy in ((-3,0),(3,0),(0,-3),(0,3)):
-            d.text((x+dx, y+dy), ln, font=font, fill=(0, 0, 0, 220))
-        d.text((x, y), ln, font=font, fill=(255, 255, 255, 255))
+    for line in lines:
+        widths = [d.textbbox((0, 0), _clean_word(w), font=font)[2] for w in line]
+        total = sum(widths) + space_w * (len(line) - 1)
+        x = (W - total) // 2
+        for w, wd in zip(line, widths):
+            cw = _clean_word(w)
+            col = (ACCENT + (255,)) if _is_accent(w) else (255, 255, 255, 255)
+            for dx, dy in ((-3, 0), (3, 0), (0, -3), (0, 3), (-2, -2), (2, 2)):
+                d.text((x + dx, y + dy), cw, font=font, fill=(0, 0, 0, 235))
+            d.text((x, y), cw, font=font, fill=col)
+            x += wd + space_w
         y += lh
     img.save(out_path)
 
@@ -238,9 +267,12 @@ def cmd_assemble(a):
             render_caption_png(cap, (sh.get("caption") or {}).get("style", "point"), png)
             inputs += ["-i", png]
             lbl = f"c{cap_idx}"
-            # 훅 자막은 0.2s, 본문은 0.3s 뒤부터 노출(트렌드: 1~2초 내 텍스트)
-            s_on = t0 + (0.2 if sh.get("role") == "hook" else 0.3)
-            overlays.append(f"[{prev}][{cap_idx}:v]overlay=0:0:enable='between(t,{s_on:.2f},{t1:.2f})'[{lbl}]")
+            # 훅은 거의 즉시(0.1s), 본문은 0.22s 뒤 노출 + 슬라이드업 '팝'(0.22s간 아래→제자리)
+            is_hook = sh.get("role") == "hook"
+            s_on = t0 + (0.1 if is_hook else 0.22)
+            yexpr = f"48*max(0\\,1-(t-{s_on:.2f})/0.22)"   # t=s_on에서 48px 아래 → 제자리로 솟구침
+            overlays.append(
+                f"[{prev}][{cap_idx}:v]overlay=0:'{yexpr}':enable='between(t,{s_on:.2f},{t1:.2f})'[{lbl}]")
             prev = lbl; cap_idx += 1; has_cap = True
         t0 = t1
     total = t0
