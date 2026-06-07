@@ -172,19 +172,24 @@ def render_caption_png(text, style, out_path):
     if cur: lines.append(cur)
     lh = int(size * 1.28); block_h = lh * len(lines)
 
-    # 하단에만 부드러운 그라데이션 스크림(사진 상단 ~60%는 그대로 노출)
-    top = int(H * 0.60)
+    # 인스타 릴스 기본 UI(하단 캡션·오디오·진행바, 우측 버튼)와 겹치지 않게:
+    # 하단 ~23%를 비우고 그 위 세이프존에 자막을 둔다. 상단도 비워 시선 집중.
+    y0 = H - block_h - int(H * 0.23)
+
+    # 자막 뒤에만 국소 그라데이션(사진 상·하단과 IG UI 영역은 노출 유지)
+    band_top = max(0, y0 - 84)
+    band_bot = min(H, y0 + block_h + 84)
+    fade = 92
     grad = Image.new("L", (1, H), 0)
     gpx = grad.load()
-    for yy in range(top, H):
-        gpx[0, yy] = int(175 * (yy - top) / (H - top))
+    for yy in range(band_top, band_bot):
+        din = min(yy - band_top, fade) / fade
+        dout = min(band_bot - yy, fade) / fade
+        gpx[0, yy] = int(150 * max(0.0, min(din, dout)))
     scrim = Image.new("RGBA", (W, H), (8, 8, 10, 255))
     scrim.putalpha(grad.resize((W, H)))
     img = Image.alpha_composite(img, scrim)
     d = ImageDraw.Draw(img)
-
-    # 훅·본문 모두 하단 한 구역에 정렬(분산 방지)
-    y0 = H - block_h - int(H * 0.11)
     y = y0
     for li, line in enumerate(lines):
         widths = [d.textbbox((0, 0), _clean_word(w), font=font)[2] for w in line]
@@ -301,14 +306,25 @@ def cmd_assemble(a):
              "-af", f"afade=t=in:d=0.6,afade=t=out:st={max(0,total-1.2):.2f}:d=1.2,volume=0.9",
              "-c:a", "aac", "-b:a", "192k", audio], "music")
     else:
-        chord = [146.83, 220.0, 277.18, 329.63]
+        # 업비트 모던 비트 베드(저작권 안전 합성): 펌핑 Cmaj7 코드 + 서브베이스 펄스 + 하이햇.
+        # 120BPM 느낌(apulsator/tremolo hz=2). 실제 '많이 쓰는 트렌딩 오디오'는
+        # 발행 시 인스타 앱에서 입히거나 --music 으로 트랙 파일을 지정하면 된다.
+        chord = [261.63, 329.63, 392.00, 493.88]   # Cmaj7 (밝고 경쾌)
         bcmd = [FF, "-y"]
-        for f0 in chord: bcmd += ["-f", "lavfi", "-t", f"{total:.3f}", "-i", f"sine=frequency={f0}"]
-        mix = "".join(f"[{i}]" for i in range(len(chord)))
+        for f0 in chord:
+            bcmd += ["-f", "lavfi", "-t", f"{total:.3f}", "-i", f"sine=frequency={f0}"]
+        bcmd += ["-f", "lavfi", "-t", f"{total:.3f}", "-i", "sine=frequency=65.41"]            # 서브베이스 C2
+        bcmd += ["-f", "lavfi", "-t", f"{total:.3f}", "-i", "anoisesrc=color=white:amplitude=0.3"]  # 하이햇 소스
+        n = len(chord)
+        chord_mix = "".join(f"[{i}]" for i in range(n))
+        st = max(0, total - 1.4)
         bcmd += ["-filter_complex",
-                 f"{mix}amix=inputs={len(chord)}:normalize=0,tremolo=f=2.1:d=0.5,lowpass=f=2600,"
-                 f"volume=0.18,afade=t=in:d=0.8,afade=t=out:st={max(0,total-1.4):.2f}:d=1.4[a]",
-                 "-map", "[a]", "-c:a", "aac", "-b:a", "128k", audio]
+                 f"{chord_mix}amix=inputs={n}:normalize=0,apulsator=hz=2:width=0.8,lowpass=f=3000,volume=0.16[ch];"
+                 f"[{n}]tremolo=f=2:d=0.7,lowpass=f=200,volume=0.5[bs];"
+                 f"[{n+1}]highpass=f=8000,tremolo=f=4:d=0.9,volume=0.06[hat];"
+                 f"[ch][bs][hat]amix=inputs=3:normalize=0,"
+                 f"afade=t=in:d=0.8,afade=t=out:st={st:.2f}:d=1.4,alimiter=limit=0.92[a]",
+                 "-map", "[a]", "-c:a", "aac", "-b:a", "160k", audio]
         run(bcmd, "bgm")
 
     # 5) mux → 인스타 호환(H.264/AAC/+faststart)
